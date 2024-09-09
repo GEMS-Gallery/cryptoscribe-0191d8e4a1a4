@@ -8,14 +8,13 @@ import Nat "mo:base/Nat";
 import Result "mo:base/Result";
 
 actor InvoiceGenerator {
-    private let stripeSecretKey : Text = "YOUR_STRIPE_SECRET_KEY";
     private let stripePublishableKey : Text = "YOUR_STRIPE_PUBLISHABLE_KEY";
 
     private var invoices = HashMap.HashMap<Nat, Text>(0, Nat.equal, Nat.hash);
     private var nextInvoiceId : Nat = 1;
 
-    public query func getStripePublishableKey() : async Result.Result<Text, Text> {
-        #ok(stripePublishableKey)
+    public query func getStripePublishableKey() : async Text {
+        stripePublishableKey
     };
 
     public func createInvoice(invoiceData : Text) : async Result.Result<Text, Text> {

@@ -6,5 +6,5 @@ type Result =
 service : {
   createInvoice: (text) -> (Result);
   getInvoice: (nat) -> (Result) query;
-  getStripePublishableKey: () -> (Result) query;
+  getStripePublishableKey: () -> (text) query;
 }

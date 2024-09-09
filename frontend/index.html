@@ -13,7 +13,7 @@
 
         const idlFactory = ({ IDL }) => {
             return IDL.Service({
-                getStripePublishableKey: IDL.Func([], [IDL.Variant({ 'ok': IDL.Text, 'err': IDL.Text })], ['query']),
+                getStripePublishableKey: IDL.Func([], [IDL.Text], ['query']),
                 createInvoice: IDL.Func([IDL.Text], [IDL.Variant({ 'ok': IDL.Text, 'err': IDL.Text })], []),
                 getInvoice: IDL.Func([IDL.Nat], [IDL.Variant({ 'ok': IDL.Text, 'err': IDL.Text })], ['query']),
             });
@@ -25,12 +25,8 @@
                 const agent = new HttpAgent();
                 actor = Actor.createActor(idlFactory, { agent, canisterId });
 
-                const result = await actor.getStripePublishableKey();
-                if ('ok' in result) {
-                    stripe = Stripe(result.ok);
-                } else {
-                    console.error('Failed to get Stripe publishable key:', result.err);
-                }
+                const stripePublishableKey = await actor.getStripePublishableKey();
+                stripe = Stripe(stripePublishableKey);
             } catch (error) {
                 console.error('Error initializing actor:', error);
             }

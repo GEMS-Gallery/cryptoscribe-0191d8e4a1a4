@@ -7,7 +7,7 @@ export type Result = { 'ok' : string } |
 export interface _SERVICE {
   'createInvoice' : ActorMethod<[string], Result>,
   'getInvoice' : ActorMethod<[bigint], Result>,
-  'getStripePublishableKey' : ActorMethod<[], Result>,
+  'getStripePublishableKey' : ActorMethod<[], string>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];
