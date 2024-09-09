@@ -5,35 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modern Invoice Generator</title>
     <script src="https://js.stripe.com/v3/"></script>
-    <script src="https://unpkg.com/@dfinity/agent/lib/index.js"></script>
-    <style>
-        /* ... (styles remain unchanged) ... */
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- ... (HTML content remains unchanged) ... -->
-    </div>
+    <script type="module">
+        import { HttpAgent, Actor } from "@dfinity/agent";
 
-    <script>
         let stripe;
         let actor;
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            const canisterId = 'YOUR_CANISTER_ID';
-            const agent = new window.ic.HttpAgent();
-            actor = window.ic.Actor.createActor(canisterId, {
-                agent,
-                interfaceFactory: ({ IDL }) => {
-                    return IDL.Service({
-                        getStripePublishableKey: IDL.Func([], [IDL.Variant({ 'ok': IDL.Text, 'err': IDL.Text })], ['query']),
-                        createInvoice: IDL.Func([IDL.Text], [IDL.Variant({ 'ok': IDL.Text, 'err': IDL.Text })], []),
-                        getInvoice: IDL.Func([IDL.Nat], [IDL.Variant({ 'ok': IDL.Text, 'err': IDL.Text })], ['query']),
-                    });
-                },
+        const idlFactory = ({ IDL }) => {
+            return IDL.Service({
+                getStripePublishableKey: IDL.Func([], [IDL.Variant({ 'ok': IDL.Text, 'err': IDL.Text })], ['query']),
+                createInvoice: IDL.Func([IDL.Text], [IDL.Variant({ 'ok': IDL.Text, 'err': IDL.Text })], []),
+                getInvoice: IDL.Func([IDL.Nat], [IDL.Variant({ 'ok': IDL.Text, 'err': IDL.Text })], ['query']),
             });
+        };
 
+        async function initializeActor() {
+            const canisterId = 'YOUR_CANISTER_ID';
             try {
+                const agent = new HttpAgent();
+                actor = Actor.createActor(idlFactory, { agent, canisterId });
+
                 const result = await actor.getStripePublishableKey();
                 if ('ok' in result) {
                     stripe = Stripe(result.ok);
@@ -41,8 +32,12 @@
                     console.error('Failed to get Stripe publishable key:', result.err);
                 }
             } catch (error) {
-                console.error('Error fetching Stripe publishable key:', error);
+                console.error('Error initializing actor:', error);
             }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeActor();
 
             const form = document.getElementById('invoiceForm');
             const addItemButton = document.getElementById('addItem');
@@ -109,5 +104,13 @@
             }
         });
     </script>
+    <style>
+        /* ... (styles remain unchanged) ... */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ... (HTML content remains unchanged) ... -->
+    </div>
 </body>
 </html>
