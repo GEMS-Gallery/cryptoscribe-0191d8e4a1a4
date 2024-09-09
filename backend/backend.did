@@ -1,31 +1,13 @@
-type Time = int;
 type Result = 
  variant {
    err: text;
-   ok: Invoice;
- };
-type InvoiceItem = 
- record {
-   description: text;
-   price: float64;
-   quantity: float64;
- };
-type Invoice = 
- record {
-   clientAddress: text;
-   clientEmail: text;
-   clientName: text;
-   colorTheme: text;
-   companyAddress: text;
-   companyEmail: text;
-   companyName: text;
-   id: nat;
-   items: vec InvoiceItem;
-   timestamp: Time;
+   ok: record {
+         nat;
+         text;
+       };
  };
 service : {
-  createInvoice: (text, text, text, text, text, text, vec InvoiceItem,
-   text) -> (Result);
-  getInvoice: (nat) -> (opt Invoice) query;
-  getInvoices: () -> (vec Invoice) query;
+  createInvoice: (text) -> (Result);
+  getInvoice: (nat) -> (opt text) query;
+  getStripePublishableKey: () -> (text) query;
 }

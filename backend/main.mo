@@ -1,64 +1,39 @@
-import Bool "mo:base/Bool";
-import Float "mo:base/Float";
-import Nat "mo:base/Nat";
+import Hash "mo:base/Hash";
 
-import Array "mo:base/Array";
-import Time "mo:base/Time";
-import Result "mo:base/Result";
+import Debug "mo:base/Debug";
+import Error "mo:base/Error";
 import Text "mo:base/Text";
+import HashMap "mo:base/HashMap";
+import Nat "mo:base/Nat";
+import Result "mo:base/Result";
 
-actor {
-  type InvoiceItem = {
-    description: Text;
-    quantity: Float;
-    price: Float;
-  };
+actor InvoiceGenerator {
+    private let stripeSecretKey : Text = "YOUR_STRIPE_SECRET_KEY";
+    private let stripePublishableKey : Text = "YOUR_STRIPE_PUBLISHABLE_KEY";
 
-  type Invoice = {
-    id: Nat;
-    companyName: Text;
-    companyAddress: Text;
-    companyEmail: Text;
-    clientName: Text;
-    clientAddress: Text;
-    clientEmail: Text;
-    items: [InvoiceItem];
-    colorTheme: Text;
-    timestamp: Time.Time;
-  };
+    private var invoices = HashMap.HashMap<Nat, Text>(0, Nat.equal, Nat.hash);
+    private var nextInvoiceId : Nat = 1;
 
-  stable var invoices : [Invoice] = [];
-  stable var nextId : Nat = 0;
-
-  public func createInvoice(companyName: Text, companyAddress: Text, companyEmail: Text,
-                            clientName: Text, clientAddress: Text, clientEmail: Text,
-                            items: [InvoiceItem], colorTheme: Text) : async Result.Result<Invoice, Text> {
-    let invoice : Invoice = {
-      id = nextId;
-      companyName = companyName;
-      companyAddress = companyAddress;
-      companyEmail = companyEmail;
-      clientName = clientName;
-      clientAddress = clientAddress;
-      clientEmail = clientEmail;
-      items = items;
-      colorTheme = colorTheme;
-      timestamp = Time.now();
+    public query func getStripePublishableKey() : async Text {
+        stripePublishableKey
     };
-    invoices := Array.append(invoices, [invoice]);
-    nextId += 1;
-    #ok(invoice)
-  };
 
-  public query func getInvoices() : async [Invoice] {
-    Array.sort(invoices, func(a: Invoice, b: Invoice) : { #less; #equal; #greater } {
-      if (a.timestamp > b.timestamp) { #less }
-      else if (a.timestamp < b.timestamp) { #greater }
-      else { #equal }
-    })
-  };
+    public func createInvoice(invoiceData : Text) : async Result.Result<(Nat, Text), Text> {
+        let invoiceId = nextInvoiceId;
+        nextInvoiceId += 1;
 
-  public query func getInvoice(id: Nat) : async ?Invoice {
-    Array.find(invoices, func(invoice: Invoice) : Bool { invoice.id == id })
-  };
+        invoices.put(invoiceId, invoiceData);
+
+        // In a real-world scenario, you would integrate with Stripe API here
+        // For this example, we'll just return a mock checkout session ID
+        let mockCheckoutSessionId = "cs_test_" # Nat.toText(invoiceId);
+
+        #ok(invoiceId, mockCheckoutSessionId)
+    };
+
+    public query func getInvoice(id : Nat) : async ?Text {
+        invoices.get(id)
+    };
+
+    // Add more functions as needed for your application
 }
