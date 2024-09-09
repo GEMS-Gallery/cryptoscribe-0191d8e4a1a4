@@ -1,3 +1,5 @@
+import Bool "mo:base/Bool";
+import Float "mo:base/Float";
 import Nat "mo:base/Nat";
 
 import Array "mo:base/Array";
@@ -6,35 +8,57 @@ import Result "mo:base/Result";
 import Text "mo:base/Text";
 
 actor {
-  type Post = {
+  type InvoiceItem = {
+    description: Text;
+    quantity: Float;
+    price: Float;
+  };
+
+  type Invoice = {
     id: Nat;
-    title: Text;
-    body: Text;
-    author: Text;
+    companyName: Text;
+    companyAddress: Text;
+    companyEmail: Text;
+    clientName: Text;
+    clientAddress: Text;
+    clientEmail: Text;
+    items: [InvoiceItem];
+    colorTheme: Text;
     timestamp: Time.Time;
   };
 
-  stable var posts : [Post] = [];
+  stable var invoices : [Invoice] = [];
   stable var nextId : Nat = 0;
 
-  public func createPost(title: Text, body: Text, author: Text) : async Result.Result<Post, Text> {
-    let post : Post = {
+  public func createInvoice(companyName: Text, companyAddress: Text, companyEmail: Text,
+                            clientName: Text, clientAddress: Text, clientEmail: Text,
+                            items: [InvoiceItem], colorTheme: Text) : async Result.Result<Invoice, Text> {
+    let invoice : Invoice = {
       id = nextId;
-      title = title;
-      body = body;
-      author = author;
+      companyName = companyName;
+      companyAddress = companyAddress;
+      companyEmail = companyEmail;
+      clientName = clientName;
+      clientAddress = clientAddress;
+      clientEmail = clientEmail;
+      items = items;
+      colorTheme = colorTheme;
       timestamp = Time.now();
     };
-    posts := Array.append(posts, [post]);
+    invoices := Array.append(invoices, [invoice]);
     nextId += 1;
-    #ok(post)
+    #ok(invoice)
   };
 
-  public query func getPosts() : async [Post] {
-    Array.sort(posts, func(a: Post, b: Post) : { #less; #equal; #greater } {
+  public query func getInvoices() : async [Invoice] {
+    Array.sort(invoices, func(a: Invoice, b: Invoice) : { #less; #equal; #greater } {
       if (a.timestamp > b.timestamp) { #less }
       else if (a.timestamp < b.timestamp) { #greater }
       else { #equal }
     })
+  };
+
+  public query func getInvoice(id: Nat) : async ?Invoice {
+    Array.find(invoices, func(invoice: Invoice) : Bool { invoice.id == id })
   };
 }

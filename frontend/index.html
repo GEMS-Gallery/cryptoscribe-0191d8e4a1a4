@@ -1,12 +1,383 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Crypto Blog</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Invoice Generator</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        :root {
+            --primary-color: #635BFF;
+            --text-color: #1A1F36;
+            --background-color: #F7FAFC;
+            --input-background: #FFFFFF;
+            --border-color: #E3E8EE;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: var(--input-background);
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: var(--text-color);
+            margin-bottom: 20px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #4B45C6;
+        }
+        #invoicePreview {
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+        .item-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .item-row input {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+        .color-option.selected {
+            border: 2px solid var(--primary-color);
+        }
+        .icon {
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        .payment-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+        .payment-button:hover {
+            background-color: #45a049;
+        }
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+        .file-input {
+            position: absolute;
+            font-size: 100px;
+            right: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            background-color: #f0f0f0;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 16px;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .file-input-label:hover {
+            background-color: #e0e0e0;
+        }
+        .file-input-label .icon {
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 4H4C2.89543 4 2 4.89543 2 6V18C2 19.1046 2.89543 20 4 20H20C21.1046 20 22 19.1046 22 18V6C22 4.89543 21.1046 4 20 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 10H22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Modern Invoice Generator
+        </h1>
+        <form id="invoiceForm">
+            <h2>
+                <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 7H4C2.89543 7 2 7.89543 2 9V19C2 20.1046 2.89543 21 4 21H20C21.1046 21 22 20.1046 22 19V9C22 7.89543 21.1046 7 20 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M16 21V5C16 4.46957 15.7893 3.96086 15.4142 3.58579C15.0391 3.21071 14.5304 3 14 3H10C9.46957 3 8.96086 3.21071 8.58579 3.58579C8.21071 3.96086 8 4.46957 8 5V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Company Details
+            </h2>
+            <input type="text" id="companyName" placeholder="Company Name" required>
+            <input type="text" id="companyAddress" placeholder="Company Address" required>
+            <input type="email" id="companyEmail" placeholder="Company Email" required>
+
+            <h2>
+                <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Client Details
+            </h2>
+            <input type="text" id="clientName" placeholder="Client Name" required>
+            <input type="text" id="clientAddress" placeholder="Client Address" required>
+            <input type="email" id="clientEmail" placeholder="Client Email" required>
+
+            <h2>
+                <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 5H7C6.46957 5 5.96086 5.21071 5.58579 5.58579C5.21071 5.96086 5 6.46957 5 7V19C5 19.5304 5.21071 20.0391 5.58579 20.4142C5.96086 20.7893 6.46957 21 7 21H17C17.5304 21 18.0391 20.7893 18.4142 20.4142C18.7893 20.0391 19 19.5304 19 19V7C19 6.46957 18.7893 5.96086 18.4142 5.58579C18.0391 5.21071 17.5304 5 17 5H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 5C9 4.46957 9.21071 3.96086 9.58579 3.58579C9.96086 3.21071 10.4696 3 11 3H13C13.5304 3 14.0391 3.21071 14.4142 3.58579C14.7893 3.96086 15 4.46957 15 5C15 5.53043 14.7893 6.03914 14.4142 6.41421C14.0391 6.78929 13.5304 7 13 7H11C10.4696 7 9.96086 6.78929 9.58579 6.41421C9.21071 6.03914 9 5.53043 9 5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 12H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 16H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Invoice Items
+            </h2>
+            <div id="invoiceItems">
+                <div class="item-row">
+                    <input type="text" class="item-description" placeholder="Item description" required>
+                    <input type="number" class="item-quantity" placeholder="Quantity" required>
+                    <input type="number" class="item-price" placeholder="Price" required>
+                </div>
+            </div>
+            <button type="button" id="addItem">Add Item</button>
+
+            <h2>
+                <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 8V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M8 12H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Customization
+            </h2>
+            <div class="color-picker" id="colorPicker">
+                <div class="color-option" style="background-color: #635BFF;" data-color="#635BFF"></div>
+                <div class="color-option" style="background-color: #00D4FF;" data-color="#00D4FF"></div>
+                <div class="color-option" style="background-color: #FF9F00;" data-color="#FF9F00"></div>
+                <div class="color-option" style="background-color: #FF4E42;" data-color="#FF4E42"></div>
+                <div class="color-option" style="background-color: #00C275;" data-color="#00C275"></div>
+            </div>
+            <div class="file-input-wrapper">
+                <input type="file" id="logoUpload" accept="image/*" class="file-input">
+                <label for="logoUpload" class="file-input-label">
+                    <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span id="fileInputText">Add Your Logo</span>
+                </label>
+            </div>
+            <button type="submit">Generate Invoice</button>
+        </form>
+
+        <div id="invoicePreview"></div>
+    </div>
+
+    <script>
+        // Replace with your actual Stripe publishable key
+        const stripe = Stripe('YOUR_PUBLISHABLE_KEY');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('invoiceForm');
+            const addItemButton = document.getElementById('addItem');
+            const invoiceItems = document.getElementById('invoiceItems');
+            const invoicePreview = document.getElementById('invoicePreview');
+            const colorPicker = document.getElementById('colorPicker');
+            const logoUpload = document.getElementById('logoUpload');
+            const fileInputText = document.getElementById('fileInputText');
+            let selectedColor = '#635BFF';
+
+            addItemButton.addEventListener('click', () => {
+                const newRow = document.createElement('div');
+                newRow.className = 'item-row';
+                newRow.innerHTML = `
+                    <input type="text" class="item-description" placeholder="Item description" required>
+                    <input type="number" class="item-quantity" placeholder="Quantity" required>
+                    <input type="number" class="item-price" placeholder="Price" required>
+                `;
+                invoiceItems.appendChild(newRow);
+            });
+
+            colorPicker.addEventListener('click', (e) => {
+                if (e.target.classList.contains('color-option')) {
+                    selectedColor = e.target.dataset.color;
+                    document.querySelectorAll('.color-option').forEach(option => {
+                        option.classList.remove('selected');
+                    });
+                    e.target.classList.add('selected');
+                }
+            });
+
+            logoUpload.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    fileInputText.textContent = e.target.files[0].name;
+                } else {
+                    fileInputText.textContent = 'Add Your Logo';
+                }
+            });
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const invoiceData = {
+                    companyName: document.getElementById('companyName').value,
+                    companyAddress: document.getElementById('companyAddress').value,
+                    companyEmail: document.getElementById('companyEmail').value,
+                    clientName: document.getElementById('clientName').value,
+                    clientAddress: document.getElementById('clientAddress').value,
+                    clientEmail: document.getElementById('clientEmail').value,
+                    colorTheme: selectedColor,
+                    items: Array.from(document.querySelectorAll('.item-row')).map(row => ({
+                        description: row.querySelector('.item-description').value,
+                        quantity: parseFloat(row.querySelector('.item-quantity').value),
+                        price: parseFloat(row.querySelector('.item-price').value)
+                    }))
+                };
+
+                const logoFile = logoUpload.files[0];
+                if (logoFile) {
+                    invoiceData.logo = await convertToBase64(logoFile);
+                }
+
+                // Generate and display invoice preview
+                invoicePreview.innerHTML = await generateInvoiceHTML(invoiceData);
+                invoicePreview.style.display = 'block';
+            });
+
+            async function generateInvoiceHTML(data) {
+                let total = 0;
+                const itemsHTML = data.items.map(item => {
+                    const itemTotal = item.quantity * item.price;
+                    total += itemTotal;
+                    return `
+                        <tr>
+                            <td>${item.description}</td>
+                            <td>${item.quantity}</td>
+                            <td>$${item.price.toFixed(2)}</td>
+                            <td>$${itemTotal.toFixed(2)}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Create Stripe Checkout session
+                const session = await createCheckoutSession(total, data.clientEmail);
+
+                return `
+                    <div style="border: 2px solid ${data.colorTheme}; padding: 20px;">
+                        ${data.logo ? `<img src="${data.logo}" alt="Company Logo" style="max-width: 200px; max-height: 100px;">` : ''}
+                        <h2 style="color: ${data.colorTheme};">INVOICE</h2>
+                        <div style="display: flex; justify-content: space-between;">
+                            <div>
+                                <strong>From:</strong><br>
+                                ${data.companyName}<br>
+                                ${data.companyAddress}<br>
+                                ${data.companyEmail}
+                            </div>
+                            <div>
+                                <strong>To:</strong><br>
+                                ${data.clientName}<br>
+                                ${data.clientAddress}<br>
+                                ${data.clientEmail}
+                            </div>
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                            <tr style="background-color: ${data.colorTheme}; color: white;">
+                                <th style="padding: 10px; text-align: left;">Description</th>
+                                <th style="padding: 10px; text-align: right;">Quantity</th>
+                                <th style="padding: 10px; text-align: right;">Price</th>
+                                <th style="padding: 10px; text-align: right;">Total</th>
+                            </tr>
+                            ${itemsHTML}
+                            <tr>
+                                <td colspan="3" style="text-align: right; padding: 10px;"><strong>Grand Total:</strong></td>
+                                <td style="text-align: right; padding: 10px;"><strong>$${total.toFixed(2)}</strong></td>
+                            </tr>
+                        </table>
+                        <a href="${session.url}" class="payment-button" style="background-color: ${data.colorTheme};">Pay Invoice</a>
+                    </div>
+                `;
+            }
+
+            async function createCheckoutSession(amount, email) {
+                // In a real application, this would be a server-side call
+                // For demonstration purposes, we're creating a mock session here
+                return {
+                    url: `https://checkout.stripe.com/pay/cs_test_${Math.random().toString(36).substr(2, 9)}#fidkdWxOYHwnPyd1blpxYHZxWjA0TjE0PW1DTjJNa0F3S1BrXUpONTdTMTE1NzNhNWdpQn9nMkx9QmZxdDVSfGJnTDZNTVNqNmFWUHNyfGROPGJMdDZ8NWh1YH1CcU58NTVpdGF2TnxganJqdmB1TGRyMycpJ2N3amhWYHdzYHcnP3F3cGApJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl`
+                };
+            }
+
+            function convertToBase64(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = error => reject(error);
+                });
+            }
+        });
+    </script>
+</body>
 </html>
