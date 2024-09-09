@@ -20,7 +20,7 @@
         };
 
         async function initializeActor() {
-            const canisterId = 'YOUR_CANISTER_ID';
+            const canisterId = 'rrkah-fqaaa-aaaaa-aaaaq-cai'; // Replace with your actual canister ID
             try {
                 const agent = new HttpAgent();
                 actor = Actor.createActor(idlFactory, { agent, canisterId });
@@ -48,43 +48,52 @@
             const fileInputText = document.getElementById('fileInputText');
             let selectedColor = '#635BFF';
 
-            addItemButton.addEventListener('click', () => {
-                // ... (Add item functionality remains unchanged) ...
-            });
+            if (addItemButton) {
+                addItemButton.addEventListener('click', () => {
+                    // ... (Add item functionality remains unchanged) ...
+                });
+            }
 
-            colorPicker.addEventListener('click', (e) => {
-                // ... (Color picker functionality remains unchanged) ...
-            });
+            if (colorPicker) {
+                colorPicker.addEventListener('click', (e) => {
+                    // ... (Color picker functionality remains unchanged) ...
+                });
+            }
 
-            logoUpload.addEventListener('change', (e) => {
-                // ... (Logo upload functionality remains unchanged) ...
-            });
+            if (logoUpload) {
+                logoUpload.addEventListener('change', (e) => {
+                    // ... (Logo upload functionality remains unchanged) ...
+                });
+            }
 
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                const invoiceData = {
-                    // ... (Invoice data collection remains unchanged) ...
-                };
+            if (form) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const invoiceData = {
+                        // ... (Invoice data collection remains unchanged) ...
+                    };
 
-                const logoFile = logoUpload.files[0];
-                if (logoFile) {
-                    invoiceData.logo = await convertToBase64(logoFile);
-                }
-
-                try {
-                    const result = await actor.createInvoice(JSON.stringify(invoiceData));
-                    if ('ok' in result) {
-                        const { invoiceId, checkoutSessionId } = JSON.parse(result.ok);
-                        invoicePreview.innerHTML = await generateInvoiceHTML(invoiceData, invoiceId, checkoutSessionId);
-                        invoicePreview.style.display = 'block';
-                    } else {
-                        console.error('Failed to create invoice:', result.err);
+                    if (logoUpload && logoUpload.files[0]) {
+                        invoiceData.logo = await convertToBase64(logoUpload.files[0]);
                     }
-                } catch (error) {
-                    console.error('Error creating invoice:', error);
-                }
-            });
+
+                    try {
+                        const result = await actor.createInvoice(JSON.stringify(invoiceData));
+                        if ('ok' in result) {
+                            const { invoiceId, checkoutSessionId } = JSON.parse(result.ok);
+                            if (invoicePreview) {
+                                invoicePreview.innerHTML = await generateInvoiceHTML(invoiceData, invoiceId, checkoutSessionId);
+                                invoicePreview.style.display = 'block';
+                            }
+                        } else {
+                            console.error('Failed to create invoice:', result.err);
+                        }
+                    } catch (error) {
+                        console.error('Error creating invoice:', error);
+                    }
+                });
+            }
 
             async function generateInvoiceHTML(data, invoiceId, checkoutSessionId) {
                 // ... (Invoice HTML generation remains similar) ...
@@ -96,7 +105,11 @@
             }
 
             function handlePayment(checkoutSessionId) {
-                stripe.redirectToCheckout({ sessionId: checkoutSessionId });
+                if (stripe) {
+                    stripe.redirectToCheckout({ sessionId: checkoutSessionId });
+                } else {
+                    console.error('Stripe is not initialized');
+                }
             }
 
             function convertToBase64(file) {
