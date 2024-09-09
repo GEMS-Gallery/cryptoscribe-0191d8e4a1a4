@@ -1,13 +1,10 @@
 type Result = 
  variant {
    err: text;
-   ok: record {
-         nat;
-         text;
-       };
+   ok: text;
  };
 service : {
   createInvoice: (text) -> (Result);
-  getInvoice: (nat) -> (opt text) query;
-  getStripePublishableKey: () -> (text) query;
+  getInvoice: (nat) -> (Result) query;
+  getStripePublishableKey: () -> (Result) query;
 }

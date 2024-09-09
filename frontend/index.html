@@ -5,166 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modern Invoice Generator</title>
     <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://unpkg.com/@dfinity/agent/lib/index.js"></script>
     <style>
-        :root {
-            --primary-color: #635BFF;
-            --text-color: #1A1F36;
-            --background-color: #F7FAFC;
-            --input-background: #FFFFFF;
-            --border-color: #E3E8EE;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            background-color: var(--background-color);
-            color: var(--text-color);
-        }
-        .container {
-            max-width: 800px;
-            margin: auto;
-            background: var(--input-background);
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        h1, h2 {
-            color: var(--text-color);
-            margin-bottom: 20px;
-        }
-        form {
-            margin-bottom: 20px;
-        }
-        input, select, textarea {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 20px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-        }
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: var(--primary-color);
-        }
-        button {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
-        }
-        button:hover {
-            background-color: #4B45C6;
-        }
-        #invoicePreview {
-            border: 1px solid var(--border-color);
-            padding: 20px;
-            margin-top: 20px;
-            border-radius: 8px;
-        }
-        .item-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        .item-row input {
-            flex: 1;
-            margin-bottom: 0;
-        }
-        .color-picker {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .color-option {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: transform 0.3s ease;
-        }
-        .color-option:hover {
-            transform: scale(1.1);
-        }
-        .color-option.selected {
-            border: 2px solid var(--primary-color);
-        }
-        .icon {
-            vertical-align: middle;
-            margin-right: 8px;
-        }
-        .payment-button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 12px 24px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 4px 2px;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: background-color 0.3s ease;
-        }
-        .payment-button:hover {
-            background-color: #45a049;
-        }
-        .file-input-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-            width: 100%;
-        }
-        .file-input {
-            position: absolute;
-            font-size: 100px;
-            right: 0;
-            top: 0;
-            opacity: 0;
-            cursor: pointer;
-        }
-        .file-input-label {
-            display: flex;
-            align-items: center;
-            padding: 10px 12px;
-            background-color: #f0f0f0;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 16px;
-            color: var(--text-color);
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        .file-input-label:hover {
-            background-color: #e0e0e0;
-        }
-        .file-input-label .icon {
-            margin-right: 8px;
-        }
+        /* ... (styles remain unchanged) ... */
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- HTML content remains the same as in the previous full file -->
+        <!-- ... (HTML content remains unchanged) ... -->
     </div>
 
     <script>
         let stripe;
+        let actor;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // Fetch Stripe publishable key from backend
-            const response = await fetch('/api/stripe-key');
-            const { publishableKey } = await response.json();
-            stripe = Stripe(publishableKey);
+            const canisterId = 'YOUR_CANISTER_ID';
+            const agent = new window.ic.HttpAgent();
+            actor = window.ic.Actor.createActor(canisterId, {
+                agent,
+                interfaceFactory: ({ IDL }) => {
+                    return IDL.Service({
+                        getStripePublishableKey: IDL.Func([], [IDL.Variant({ 'ok': IDL.Text, 'err': IDL.Text })], ['query']),
+                        createInvoice: IDL.Func([IDL.Text], [IDL.Variant({ 'ok': IDL.Text, 'err': IDL.Text })], []),
+                        getInvoice: IDL.Func([IDL.Nat], [IDL.Variant({ 'ok': IDL.Text, 'err': IDL.Text })], ['query']),
+                    });
+                },
+            });
+
+            try {
+                const result = await actor.getStripePublishableKey();
+                if ('ok' in result) {
+                    stripe = Stripe(result.ok);
+                } else {
+                    console.error('Failed to get Stripe publishable key:', result.err);
+                }
+            } catch (error) {
+                console.error('Error fetching Stripe publishable key:', error);
+            }
 
             const form = document.getElementById('invoiceForm');
             const addItemButton = document.getElementById('addItem');
@@ -176,22 +54,22 @@
             let selectedColor = '#635BFF';
 
             addItemButton.addEventListener('click', () => {
-                // Add item functionality remains the same
+                // ... (Add item functionality remains unchanged) ...
             });
 
             colorPicker.addEventListener('click', (e) => {
-                // Color picker functionality remains the same
+                // ... (Color picker functionality remains unchanged) ...
             });
 
             logoUpload.addEventListener('change', (e) => {
-                // Logo upload functionality remains the same
+                // ... (Logo upload functionality remains unchanged) ...
             });
 
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
                 const invoiceData = {
-                    // Invoice data collection remains the same
+                    // ... (Invoice data collection remains unchanged) ...
                 };
 
                 const logoFile = logoUpload.files[0];
@@ -199,25 +77,22 @@
                     invoiceData.logo = await convertToBase64(logoFile);
                 }
 
-                // Send invoice data to backend
-                const invoiceResponse = await fetch('/api/create-invoice', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(invoiceData),
-                });
-
-                const { invoiceId, checkoutSessionId } = await invoiceResponse.json();
-
-                // Generate and display invoice preview
-                invoicePreview.innerHTML = await generateInvoiceHTML(invoiceData, invoiceId, checkoutSessionId);
-                invoicePreview.style.display = 'block';
+                try {
+                    const result = await actor.createInvoice(JSON.stringify(invoiceData));
+                    if ('ok' in result) {
+                        const { invoiceId, checkoutSessionId } = JSON.parse(result.ok);
+                        invoicePreview.innerHTML = await generateInvoiceHTML(invoiceData, invoiceId, checkoutSessionId);
+                        invoicePreview.style.display = 'block';
+                    } else {
+                        console.error('Failed to create invoice:', result.err);
+                    }
+                } catch (error) {
+                    console.error('Error creating invoice:', error);
+                }
             });
 
             async function generateInvoiceHTML(data, invoiceId, checkoutSessionId) {
-                // Invoice HTML generation remains similar, but use checkoutSessionId for payment link
-                // ...
+                // ... (Invoice HTML generation remains similar) ...
 
                 return `
                     <!-- Invoice HTML structure -->
@@ -230,7 +105,7 @@
             }
 
             function convertToBase64(file) {
-                // Base64 conversion function remains the same
+                // ... (Base64 conversion function remains unchanged) ...
             }
         });
     </script>

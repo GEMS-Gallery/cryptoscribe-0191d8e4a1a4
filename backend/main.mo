@@ -14,26 +14,27 @@ actor InvoiceGenerator {
     private var invoices = HashMap.HashMap<Nat, Text>(0, Nat.equal, Nat.hash);
     private var nextInvoiceId : Nat = 1;
 
-    public query func getStripePublishableKey() : async Text {
-        stripePublishableKey
+    public query func getStripePublishableKey() : async Result.Result<Text, Text> {
+        #ok(stripePublishableKey)
     };
 
-    public func createInvoice(invoiceData : Text) : async Result.Result<(Nat, Text), Text> {
+    public func createInvoice(invoiceData : Text) : async Result.Result<Text, Text> {
         let invoiceId = nextInvoiceId;
         nextInvoiceId += 1;
 
         invoices.put(invoiceId, invoiceData);
 
-        // In a real-world scenario, you would integrate with Stripe API here
-        // For this example, we'll just return a mock checkout session ID
         let mockCheckoutSessionId = "cs_test_" # Nat.toText(invoiceId);
 
-        #ok(invoiceId, mockCheckoutSessionId)
+        let response = "{\"invoiceId\":" # Nat.toText(invoiceId) # ",\"checkoutSessionId\":\"" # mockCheckoutSessionId # "\"}";
+
+        #ok(response)
     };
 
-    public query func getInvoice(id : Nat) : async ?Text {
-        invoices.get(id)
+    public query func getInvoice(id : Nat) : async Result.Result<Text, Text> {
+        switch (invoices.get(id)) {
+            case (null) { #err("Invoice not found") };
+            case (?invoice) { #ok(invoice) };
+        }
     };
-
-    // Add more functions as needed for your application
 }
