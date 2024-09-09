@@ -11,9 +11,10 @@
         let stripe;
         let actor;
 
+        const STRIPE_PUBLISHABLE_KEY = "YOUR_STRIPE_PUBLISHABLE_KEY";
+
         const idlFactory = ({ IDL }) => {
             return IDL.Service({
-                getStripePublishableKey: IDL.Func([], [IDL.Text], ['query']),
                 createInvoice: IDL.Func([IDL.Text], [IDL.Variant({ 'ok': IDL.Text, 'err': IDL.Text })], []),
                 getInvoice: IDL.Func([IDL.Nat], [IDL.Variant({ 'ok': IDL.Text, 'err': IDL.Text })], ['query']),
             });
@@ -24,9 +25,7 @@
             try {
                 const agent = new HttpAgent();
                 actor = Actor.createActor(idlFactory, { agent, canisterId });
-
-                const stripePublishableKey = await actor.getStripePublishableKey();
-                stripe = Stripe(stripePublishableKey);
+                stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
             } catch (error) {
                 console.error('Error initializing actor:', error);
             }

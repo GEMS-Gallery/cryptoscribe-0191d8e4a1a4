@@ -13,10 +13,6 @@ actor InvoiceGenerator {
     private var invoices = HashMap.HashMap<Nat, Text>(0, Nat.equal, Nat.hash);
     private var nextInvoiceId : Nat = 1;
 
-    public query func getStripePublishableKey() : async Text {
-        stripePublishableKey
-    };
-
     public func createInvoice(invoiceData : Text) : async Result.Result<Text, Text> {
         let invoiceId = nextInvoiceId;
         nextInvoiceId += 1;

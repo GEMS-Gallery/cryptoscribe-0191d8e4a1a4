@@ -3,7 +3,6 @@ export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     'createInvoice' : IDL.Func([IDL.Text], [Result], []),
     'getInvoice' : IDL.Func([IDL.Nat], [Result], ['query']),
-    'getStripePublishableKey' : IDL.Func([], [IDL.Text], ['query']),
   });
 };
 export const init = ({ IDL }) => { return []; };
